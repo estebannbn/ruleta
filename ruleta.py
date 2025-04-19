@@ -13,6 +13,9 @@ COLORES_RULETA = {
     31: "negro", 32: "rojo", 33: "negro", 34: "rojo", 35: "negro", 36: "rojo"
 }
 
+VALOR_PROMEDIO_ESPERADO = 1/37 
+FRECUENCIA_RELATIVA_ESPERADA = 1/37 * 100
+
 # Simulacion de la ruleta
 # Devuelve la lista de resultados y sus colores
 def simular_ruleta(n):
@@ -40,17 +43,14 @@ def calcular_estadisticas(colores):
     return estadisticas, porcentajes
 
 
-
+# Grafico de frecuencia de los resultados
 def graficar_frecuencia(resultados):
     frecuencias = {i: resultados.count(i) for i in range(37) if resultados.count(i) > 0}
     numeros = list(frecuencias.keys())
     conteos = list(frecuencias.values())
-    promedio = np.mean(conteos)
 
     plt.figure(figsize=(12, 6))
     plt.bar(numeros, conteos, color='skyblue', edgecolor='black')
-    promedio_plot = plt.axhline(y=promedio, color='red', linestyle='--', label=f'Promedio de tiradas: {promedio:.2f}')
-    plt.legend(handles=[promedio_plot])
     plt.title("Frecuencia de Números de la Ruleta")
     plt.xlabel("Número")
     plt.ylabel("Frecuencia")
@@ -58,6 +58,8 @@ def graficar_frecuencia(resultados):
     plt.xticks(range(0, 37))
     plt.show()
 
+
+# Grafico de torta para mostrar la distribucion de colores
 def graficar_colores(estadisticas):
     labels = estadisticas.keys()
     sizes = estadisticas.values()
@@ -65,7 +67,7 @@ def graficar_colores(estadisticas):
     
     plt.figure(figsize=(6, 6))
 
-    # Crea el grafico de pie, y devuelve los objetos necesarios para personalizarlo
+    # Crea el grafico de torta, y devuelve los objetos necesarios para personalizarlo
     wedges, texts, autotexts = plt.pie(
         sizes,
         labels=labels,
@@ -74,7 +76,7 @@ def graficar_colores(estadisticas):
         startangle=140
     )
 
-    # Cambiar color del texto de porcentaje, para que contraste con el color del pie
+    # Cambiar color del texto de porcentaje, para que contraste con el color del grafico
     for autotext in autotexts:
         autotext.set_color('white')  # Cambia a cualquier color que quieras
         autotext.set_fontweight('bold')
@@ -86,34 +88,54 @@ def graficar_colores(estadisticas):
 
 # Graficamos la varianza y el desvio estandar de los resultados
 
-def graficar_varianza_desvio(resultados):
-    varianzas = []
-    desvios = []
-    muestras = []
+def graficar_boxplot(resultados):
+    varianza = np.var(resultados)
+    desvio = np.std(resultados)
 
-    for i in range(1, len(resultados) + 1):
-        muestra_actual = resultados[:i]
-        varianza = np.var(muestra_actual)
-        desvio = np.std(muestra_actual)
-        varianzas.append(varianza)
-        desvios.append(desvio)
-        muestras.append(i)
+    plt.figure(figsize=(8, 6))
+    plt.boxplot(resultados, vert=True, patch_artist=True,
+                boxprops=dict(facecolor='lightblue', color='blue'),
+                medianprops=dict(color='red'),
+                whiskerprops=dict(color='blue'),
+                capprops=dict(color='blue'),
+                flierprops=dict(markerfacecolor='gray', marker='o', markersize=6, linestyle='none'))
 
-    plt.figure(figsize=(12, 6))
-    plt.plot(muestras, varianzas, label='Varianza', color='orange')
-    plt.plot(muestras, desvios, label='Desvío estándar', color='purple')
-    plt.title("Evolución de la Varianza y el Desvío Estándar")
-    plt.xlabel("Número de Tiradas")
-    plt.ylabel("Valor")
+    plt.title(f"Boxplot de Resultados\nVarianza: {varianza:.2f} | Desvío Estándar: {desvio:.2f}", color='navy')
+    plt.ylabel("Valor de la ruleta", color='darkgreen')
+    plt.xticks([1], ['Resultados'], color='gray')
+    plt.yticks(color='gray')
+    plt.grid(True, axis='y', linestyle='--', alpha=0.6)
+    plt.show()
+
+def graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo=0):
+    frn = []
+    n_values = []
+
+    conteo = 0
+    for i, valor in enumerate(resultados, start=1):
+        if valor == numero_objetivo:
+            conteo += 1
+        frn.append(conteo / i)
+        n_values.append(i)
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(n_values, frn, label=f'frn (frecuencia relativa de {numero_objetivo})', color='red')
+    plt.axhline(VALOR_PROMEDIO_ESPERADO, color='blue', linestyle='--', label='fre (valor esperado 1/37)')
+    plt.xlabel('n (número de tiradas)')
+    plt.ylabel('fr (frecuencia relativa)')
+    plt.title(f'Convergencia de la Frecuencia Relativa para el número {numero_objetivo}')
     plt.legend()
-    plt.grid(True)
+    plt.grid(True, linestyle='--', alpha=0.6)
     plt.show()
 
 
 # Programa principal
 if __name__ == "__main__":
+    numero_objetivo = -1
     try:
         n = int(input("¿Cuántas veces quieres tirar de la ruleta? "))
+        while numero_objetivo < 0 or numero_objetivo > 36:
+            numero_objetivo = int(input("Elige un número entre 0 y 36 para jugar: "))
         if n <= 0:
             print("El número de tiradas debe ser mayor que 0.")
         else:
@@ -128,7 +150,7 @@ if __name__ == "__main__":
             
             graficar_frecuencia(resultados)
             graficar_colores(estadisticas)
-            graficar_varianza_desvio(resultados)
-
+            graficar_boxplot(resultados)
+            graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo)
     except ValueError:
         print("Por favor, introduce un número entero válido.")
