@@ -13,8 +13,7 @@ COLORES_RULETA = {
     31: "negro", 32: "rojo", 33: "negro", 34: "rojo", 35: "negro", 36: "rojo"
 }
 
-VALOR_PROMEDIO_ESPERADO = 1/37 
-FRECUENCIA_RELATIVA_ESPERADA = 1/37 * 100
+PROBABILIDAD_ESPERADA = 1/37
 
 # Simulacion de la ruleta
 # Devuelve la lista de resultados y sus colores
@@ -107,11 +106,20 @@ def graficar_boxplot(resultados):
     plt.grid(True, axis='y', linestyle='--', alpha=0.6)
     plt.show()
 
-def graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo=0):
+
+def graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo):
+    if not 0 <= numero_objetivo <= 36:
+        print("Número objetivo fuera de rango (debe ser entre 0 y 36).")
+        return
+    if len(resultados) == 0:
+        print("No hay resultados para graficar.")
+        return
+
     frn = []
     n_values = []
-
     conteo = 0
+    PROBABILIDAD_ESPERADA = 1 / 37  # Valor esperado de aparición para un número específico
+
     for i, valor in enumerate(resultados, start=1):
         if valor == numero_objetivo:
             conteo += 1
@@ -120,12 +128,57 @@ def graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo=0):
 
     plt.figure(figsize=(10, 5))
     plt.plot(n_values, frn, label=f'frn (frecuencia relativa de {numero_objetivo})', color='red')
-    plt.axhline(VALOR_PROMEDIO_ESPERADO, color='blue', linestyle='--', label='fre (valor esperado 1/37)')
+    plt.axhline(PROBABILIDAD_ESPERADA, color='blue', linestyle='--', label='fre (valor esperado 1/37)')
     plt.xlabel('n (número de tiradas)')
     plt.ylabel('fr (frecuencia relativa)')
     plt.title(f'Convergencia de la Frecuencia Relativa para el número {numero_objetivo}')
     plt.legend()
     plt.grid(True, linestyle='--', alpha=0.6)
+    plt.show()
+
+
+def graficar_promedio_convergencia(resultados):
+    promedio_esperado = sum(range(37)) / 37  # vpe
+    promedios = [np.mean(resultados[:i+1]) for i in range(len(resultados))]  # vpn
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(promedios, color='red', label='vpn (promedio con respecto a n)')
+    plt.axhline(y=promedio_esperado, color='blue', linestyle='--', label='vpe (valor promedio esperado)')
+    plt.title("Convergencia del Valor Promedio")
+    plt.xlabel("n (número de tiradas)")
+    plt.ylabel("vp (valor promedio)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def graficar_desvio_convergencia(resultados, numero_objetivo=0):
+    binarios = [1 if r == numero_objetivo else 0 for r in resultados]
+    desvios = [np.std(binarios[:i+1]) for i in range(len(binarios))]
+    desvio_esperado = np.sqrt(1/37 * (1 - 1/37))  # desvío binomial teórico
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(desvios, color='red', label='vd (desvío del número X con n)')
+    plt.axhline(y=desvio_esperado, color='blue', linestyle='--', label='vde (desvío esperado)')
+    plt.title(f"Convergencia del Desvío para el número {numero_objetivo}")
+    plt.xlabel("n (número de tiradas)")
+    plt.ylabel("vd (valor del desvío)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def graficar_varianza_convergencia(resultados, numero_objetivo=0):
+    binarios = [1 if r == numero_objetivo else 0 for r in resultados]
+    varianzas = [np.var(binarios[:i+1]) for i in range(len(binarios))]
+    varianza_esperada = 1/37 * (1 - 1/37)  # varianza binomial teórica
+
+    plt.figure(figsize=(10, 5))
+    plt.plot(varianzas, color='red', label='vvn (varianza del número X con n)')
+    plt.axhline(y=varianza_esperada, color='blue', linestyle='--', label='vve (varianza esperada)')
+    plt.title(f"Convergencia de la Varianza para el número {numero_objetivo}")
+    plt.xlabel("n (número de tiradas)")
+    plt.ylabel("vv (valor de la varianza)")
+    plt.legend()
+    plt.grid(True)
     plt.show()
 
 
@@ -152,5 +205,8 @@ if __name__ == "__main__":
             graficar_colores(estadisticas)
             graficar_boxplot(resultados)
             graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo)
+            graficar_promedio_convergencia(resultados)
+            graficar_desvio_convergencia(resultados, numero_objetivo)
+            graficar_varianza_convergencia(resultados, numero_objetivo)
     except ValueError:
         print("Por favor, introduce un número entero válido.")
