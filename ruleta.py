@@ -1,6 +1,7 @@
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
 # Colores de cada numero
 COLORES_RULETA = {
@@ -184,15 +185,20 @@ def graficar_varianza_convergencia(resultados, numero_objetivo=0):
 
 # Programa principal
 if __name__ == "__main__":
-    numero_objetivo = -1
     try:
-        n = int(input("¿Cuántas veces quieres tirar de la ruleta? "))
-        while numero_objetivo < 0 or numero_objetivo > 36:
-            numero_objetivo = int(input("Elige un número entre 0 y 36 para jugar: "))
-        if n <= 0:
+        parser = argparse.ArgumentParser(description="Necesita numero objetivo --obj y numero de tiradas --n")
+        # Agregar argumentos al parser
+        parser.add_argument("--n", type=int, required=True, help="Numero de tiradas")
+        parser.add_argument("--obj", type=int, help="numero objetivo")
+
+        # Analizar los argumentos pasados por línea de comandos
+        args = parser.parse_args()
+        if args.n <= 0:
             print("El número de tiradas debe ser mayor que 0.")
+        elif args.obj < 0 or args.obj > 36:
+            print("El número objetivo debe estar entre 0 y 36.")
         else:
-            resultados, colores = simular_ruleta(n)
+            resultados, colores = simular_ruleta(args.n)
             estadisticas, porcentajes = calcular_estadisticas(colores)
 
             print("\nResultados:")
@@ -204,9 +210,9 @@ if __name__ == "__main__":
             graficar_frecuencia(resultados)
             graficar_colores(estadisticas)
             graficar_boxplot(resultados)
-            graficar_frecuencia_relativa_convergencia(resultados, numero_objetivo)
+            graficar_frecuencia_relativa_convergencia(resultados, args.obj)
             graficar_promedio_convergencia(resultados)
-            graficar_desvio_convergencia(resultados, numero_objetivo)
-            graficar_varianza_convergencia(resultados, numero_objetivo)
+            graficar_desvio_convergencia(resultados, args.obj)
+            graficar_varianza_convergencia(resultados, args.obj)
     except ValueError:
         print("Por favor, introduce un número entero válido.")
