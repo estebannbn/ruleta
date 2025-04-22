@@ -1,6 +1,7 @@
 import random
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
 # Colores de cada numero
 COLORES_RULETA = {
@@ -13,122 +14,196 @@ COLORES_RULETA = {
     31: "negro", 32: "rojo", 33: "negro", 34: "rojo", 35: "negro", 36: "rojo"
 }
 
-# Simulacion de la ruleta
-# Devuelve la lista de resultados y sus colores
-def simular_ruleta(n):
-    resultados = []
-    colores = []
-    for _ in range(n):
-        tirada = random.randint(0, 36)
-        color = COLORES_RULETA[tirada]
-        resultados.append(tirada)
-        colores.append(color)
-    return resultados, colores
 
-# Devuelve 2 diccionarios:
-#    Estadisticas: cantidad de veces que aparece cada color
-#    Porcentajes: porcentaje de cada color respecto al total de tiradas
-# Le entra como parametro la lista de colores de la funcion anterior
+def simular_ruleta(n, c):
+    resultados_totales = []
+    colores_totales = []
+    for _ in range(c):
+        resultados = []
+        colores = []
+        for _ in range(n):
+            tirada = random.randint(0, 36)
+            color = COLORES_RULETA[tirada]
+            resultados.append(tirada)
+            colores.append(color)
+        resultados_totales.append(resultados)
+        colores_totales.append(colores)
+    return resultados_totales, colores_totales
+
+
 def calcular_estadisticas(colores):
-    total = len(colores)
+    flat_colores = sum(colores, [])
+    total = len(flat_colores)
     estadisticas = {
-        "rojo": colores.count("rojo"),
-        "negro": colores.count("negro"),
-        "verde": colores.count("verde")
+        "rojo": flat_colores.count("rojo"),
+        "negro": flat_colores.count("negro"),
+        "verde": flat_colores.count("verde")
     }
     porcentajes = {k: (v / total) * 100 for k, v in estadisticas.items()}
     return estadisticas, porcentajes
 
 
+def graficar_una_corrida(resultados, numero_objetivo):
+    plt.figure(figsize=(12, 10))
 
-def graficar_frecuencia(resultados):
-    frecuencias = {i: resultados.count(i) for i in range(37) if resultados.count(i) > 0}
-    numeros = list(frecuencias.keys())
-    conteos = list(frecuencias.values())
-    promedio = np.mean(conteos)
-
-    plt.figure(figsize=(12, 6))
-    plt.bar(numeros, conteos, color='skyblue', edgecolor='black')
-    promedio_plot = plt.axhline(y=promedio, color='red', linestyle='--', label=f'Promedio de tiradas: {promedio:.2f}')
-    plt.legend(handles=[promedio_plot])
-    plt.title("Frecuencia de Números de la Ruleta")
-    plt.xlabel("Número")
-    plt.ylabel("Frecuencia")
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    plt.xticks(range(0, 37))
-    plt.show()
-
-def graficar_colores(estadisticas):
-    labels = estadisticas.keys()
-    sizes = estadisticas.values()
-    colors = ['red', 'black', 'green']
-    
-    plt.figure(figsize=(6, 6))
-
-    # Crea el grafico de pie, y devuelve los objetos necesarios para personalizarlo
-    wedges, texts, autotexts = plt.pie(
-        sizes,
-        labels=labels,
-        colors=colors,
-        autopct='%1.1f%%',
-        startangle=140
-    )
-
-    # Cambiar color del texto de porcentaje, para que contraste con el color del pie
-    for autotext in autotexts:
-        autotext.set_color('white')  # Cambia a cualquier color que quieras
-        autotext.set_fontweight('bold')
-
-    plt.title("Distribución de Colores en la Ruleta")
-    plt.axis('equal')
-    plt.show()
-
-
-# Graficamos la varianza y el desvio estandar de los resultados
-
-def graficar_varianza_desvio(resultados):
-    varianzas = []
-    desvios = []
-    muestras = []
-
-    for i in range(1, len(resultados) + 1):
-        muestra_actual = resultados[:i]
-        varianza = np.var(muestra_actual)
-        desvio = np.std(muestra_actual)
-        varianzas.append(varianza)
-        desvios.append(desvio)
-        muestras.append(i)
-
-    plt.figure(figsize=(12, 6))
-    plt.plot(muestras, varianzas, label='Varianza', color='orange')
-    plt.plot(muestras, desvios, label='Desvío estándar', color='purple')
-    plt.title("Evolución de la Varianza y el Desvío Estándar")
-    plt.xlabel("Número de Tiradas")
-    plt.ylabel("Valor")
+    # Frecuencia relativa
+    plt.subplot(2, 2, 1)
+    frn = []
+    conteo = 0
+    for j, valor in enumerate(resultados, start=1):
+        if valor == numero_objetivo:
+            conteo += 1
+        frn.append(conteo / j)
+    plt.plot(frn, label='Corrida 1')
+    plt.axhline(1 / 37, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Frecuencia Relativa')
+    plt.title('(a) Frecuencia Relativa')
     plt.legend()
     plt.grid(True)
+
+    # Varianza
+    plt.subplot(2, 2, 2)
+    binarios = [1 if r == numero_objetivo else 0 for r in resultados]
+    varianzas = [np.var(binarios[:j+1]) for j in range(len(binarios))]
+    plt.plot(varianzas, label='Corrida 1')
+    plt.axhline(1/37 * (1 - 1/37), color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Varianza')
+    plt.title('(b) Varianza')
+    plt.legend()
+    plt.grid(True)
+
+    # Desvío estándar
+    plt.subplot(2, 2, 3)
+    desvios = [np.std(binarios[:j+1]) for j in range(len(binarios))]
+    plt.plot(desvios, label='Corrida 1')
+    plt.axhline(np.sqrt(1/37 * (1 - 1/37)), color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Desvío')
+    plt.title('(c) Desvío Estándar')
+    plt.legend()
+    plt.grid(True)
+
+    # Promedio
+    plt.subplot(2, 2, 4)
+    promedios = [np.mean(resultados[:j+1]) for j in range(len(resultados))]
+    plt.plot(promedios, label='Corrida 1')
+    plt.axhline(sum(range(37)) / 37, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Promedio')
+    plt.title('(d) Promedio')
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("grafico_primera_corrida.png", dpi=300, bbox_inches='tight')  # Guardar como PNG con alta resolución
     plt.show()
 
 
-# Programa principal
+# Comparación entre múltiples corridas
+
+def graficar_frecuencia_relativa_convergencia(corridas, numero_objetivo):
+    plt.figure(figsize=(10, 5))
+    PROBABILIDAD_ESPERADA = 1 / 37
+    for idx, resultados in enumerate(corridas):
+        conteo = 0
+        frn = []
+        for j, valor in enumerate(resultados, start=1):
+            if valor == numero_objetivo:
+                conteo += 1
+            frn.append(conteo / j)
+        plt.plot(frn, label=f'Corrida {idx + 1}')
+    plt.axhline(PROBABILIDAD_ESPERADA, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Frecuencia Relativa')
+    plt.title(f'Convergencia Frecuencia Relativa del número {numero_objetivo}')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("grafico_frecuencia_relativa_convergencia.png", dpi=300, bbox_inches='tight')  # Guardar como PNG con alta resolución
+    plt.show()
+
+
+def graficar_promedio_convergencia(corridas):
+    plt.figure(figsize=(10, 5))
+    promedio_esperado = sum(range(37)) / 37
+    for idx, resultados in enumerate(corridas):
+        promedios = [np.mean(resultados[:j+1]) for j in range(len(resultados))]
+        plt.plot(promedios, label=f'Corrida {idx + 1}')
+    plt.axhline(promedio_esperado, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Promedio')
+    plt.title('Convergencia del Promedio')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("grafico_promedio_convergencia.png", dpi=300, bbox_inches='tight')  # Guardar como PNG con alta resolución
+
+    plt.show()
+
+
+def graficar_desvio_convergencia(corridas, numero_objetivo=0):
+    plt.figure(figsize=(10, 5))
+    desvio_esperado = np.sqrt(1/37 * (1 - 1/37))
+    for idx, resultados in enumerate(corridas):
+        binarios = [1 if r == numero_objetivo else 0 for r in resultados]
+        desvios = [np.std(binarios[:j+1]) for j in range(len(binarios))]
+        plt.plot(desvios, label=f'Corrida {idx + 1}')
+    plt.axhline(desvio_esperado, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Desvío Estándar')
+    plt.title(f'Convergencia del Desvío para el número {numero_objetivo}')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig("grafico_desvio_convergencia.png", dpi=300, bbox_inches='tight')  # Guardar como PNG con alta resolución
+    plt.show()
+
+
+def graficar_varianza_convergencia(corridas, numero_objetivo=0):
+    plt.figure(figsize=(10, 5))
+    varianza_esperada = 1/37 * (1 - 1/37)
+    for idx, resultados in enumerate(corridas):
+        binarios = [1 if r == numero_objetivo else 0 for r in resultados]
+        varianzas = [np.var(binarios[:j+1]) for j in range(len(binarios))]
+        plt.plot(varianzas, label=f'Corrida {idx + 1}')
+    plt.axhline(varianza_esperada, color='black', linestyle='--', label='Valor Esperado')
+    plt.xlabel('Tiradas')
+    plt.ylabel('Varianza')
+    plt.title(f'Convergencia de la Varianza para el número {numero_objetivo}')
+    plt.legend()
+    plt.grid(True)
+
+    
+    plt.savefig("grafico_varianza_convergencia.png", dpi=300, bbox_inches='tight')  # Guardar como PNG con alta resolución
+    plt.show()
+
+
 if __name__ == "__main__":
-    try:
-        n = int(input("¿Cuántas veces quieres tirar de la ruleta? "))
-        if n <= 0:
-            print("El número de tiradas debe ser mayor que 0.")
-        else:
-            resultados, colores = simular_ruleta(n)
-            estadisticas, porcentajes = calcular_estadisticas(colores)
 
-            print("\nResultados:")
-            print(resultados)
-            print("\nEstadísticas de colores:")
-            for color in estadisticas:
-                print(f"{color.capitalize()}: {estadisticas[color]} veces ({porcentajes[color]:.2f}%)")
-            
-            graficar_frecuencia(resultados)
-            graficar_colores(estadisticas)
-            graficar_varianza_desvio(resultados)
+    parser = argparse.ArgumentParser(description="Simulación de ruleta con múltiples corridas")
+    parser.add_argument("-n", type=int, required=True, help="Número de tiradas por corrida")
+    parser.add_argument("-c", type=int, required=True, help="Número de corridas")
+    parser.add_argument("-obj", type=int, help="Número objetivo")
 
-    except ValueError:
-        print("Por favor, introduce un número entero válido.")
+    args = parser.parse_args()
+
+    if args.n <= 0 or args.c <= 0:
+        print("El número de tiradas y corridas debe ser mayor que 0.")
+    elif args.obj < 0 or args.obj > 36:
+        print("El número objetivo debe estar entre 0 y 36.")
+    else:
+        resultados, colores = simular_ruleta(args.n, args.c)
+        estadisticas, porcentajes = calcular_estadisticas(colores)
+
+        print("\nEstadísticas de colores:")
+        for color in estadisticas:
+            print(f"{color.capitalize()}: {estadisticas[color]} veces ({porcentajes[color]:.2f}%)")
+
+        # Primero se grafican las métricas de la primera corrida sola
+        graficar_una_corrida(resultados[0], args.obj)
+
+        # Luego se grafican las métricas comparando todas las corridas
+        graficar_frecuencia_relativa_convergencia(resultados, args.obj)
+        graficar_promedio_convergencia(resultados)
+        graficar_desvio_convergencia(resultados, args.obj)
+        graficar_varianza_convergencia(resultados, args.obj)
+
+        
