@@ -1,75 +1,157 @@
-import matplotlib.pyplot as plt
 import random
+import matplotlib.pyplot as plt
+import numpy as np
+import argparse
 
-# Variables de juego
-tiradas = 100
-apuestas = []
-ganancias_acumuladas = []
-perdidas_acumuladas = []
-saldo = 0
-
-# Función para simular las tiradas de la ruleta
 def tirar_ruleta():
-    # Definir los números y colores (en este ejemplo simplificado)
-    numeros = list(range(37))  # 0-36 (ruleta europea)
-    colores = ['rojo', 'negro'] * 18 + ['verde']  # Solo rojo, negro y verde para el 0
-    numero = random.choice(numeros)
-    color = colores[numeros.index(numero)]
-    return numero, color
+    """Simula una tirada de ruleta europea (0-36)."""
+    return random.randint(0, 36)
 
-# Simulación de las tiradas
-for i in range(tiradas):
-    # Apostar una cantidad aleatoria entre 1 y 10
-    apuesta = random.randint(1, 10)
-    apuestas.append(apuesta)
-
-    # Tirar la ruleta
-    numero, color = tirar_ruleta()
-
-    # Ganar o perder dependiendo del número
-    if numero == 0:  # Verde
-        ganancia = apuesta * 35  # Ganancia en caso de acertar al 0
+def martingala(balance, apuesta_inicial, historial_apuestas, exito):
+    if exito or not historial_apuestas:
+        apuesta = apuesta_inicial
     else:
-        ganancia = -apuesta  # Pérdida si no es 0
+        apuesta = historial_apuestas[-1] * 2
+    return apuesta
 
-    saldo += ganancia
-    ganancias_acumuladas.append(ganancia if ganancia > 0 else 0)
-    perdidas_acumuladas.append(-ganancia if ganancia < 0 else 0)
+def dalembert(balance, apuesta_inicial, historial_apuestas, exito):
+    if not historial_apuestas:
+        apuesta = apuesta_inicial
+    else:
+        if exito:
+            apuesta = max(apuesta_inicial, historial_apuestas[-1] - 1)
+        else:
+            apuesta = historial_apuestas[-1] + 1
+    return apuesta
 
-# Gráficos
+def fibonacci(balance, apuesta_inicial, historial_apuestas, exito, secuencia=[1, 1]):
+    if not historial_apuestas:
+        idx = 0
+    else:
+        idx = len(secuencia) - 1
+        if exito:
+            idx = max(0, idx - 2)
+        else:
+            idx += 1
+            if idx >= len(secuencia):
+                secuencia.append(secuencia[-1] + secuencia[-2])
+    apuesta = secuencia[idx] * apuesta_inicial
+    return apuesta
 
-# 1. Evolución de apuestas (línea azul)
-plt.figure(figsize=(10, 6))
-plt.plot(range(tiradas), apuestas, label='Apuestas por tirada', color='blue')
-plt.title('Evolución de Apuestas')
-plt.xlabel('Tirada')
-plt.ylabel('Apuesta')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig('evolucion_apuestas.png')
+def simular_corrida(n, e, estrategia, capital_infinito, capital_inicial=1000, apuesta_inicial=1):
+    flujo_caja = []
+    exitos_acumulados = []
+    exitos = 0
+    balance = capital_inicial if not capital_infinito else float('inf')
+    historial_apuestas = []
+    secuencia_fibo = [1, 1]
 
-# 2. Ganancias acumuladas (barras verdes)
-plt.figure(figsize=(10, 6))
-plt.bar(range(tiradas), ganancias_acumuladas, label='Ganancias Acumuladas', color='green')
-plt.title('Ganancias Acumuladas')
-plt.xlabel('Tirada')
-plt.ylabel('Ganancias')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig('ganancias_acumuladas.png')
+    for tirada in range(1, n+1):
+        # Determinar el número a apostar
+        if e is None:
+            apuesta_numero = random.randint(0, 36)
+        else:
+            apuesta_numero = e
 
-# 3. Pérdidas acumuladas (barras rojas)
-plt.figure(figsize=(10, 6))
-plt.bar(range(tiradas), perdidas_acumuladas, label='Pérdidas Acumuladas', color='red')
-plt.title('Pérdidas Acumuladas')
-plt.xlabel('Tirada')
-plt.ylabel('Pérdidas')
-plt.legend()
-plt.grid(True)
-plt.tight_layout()
-plt.savefig('perdidas_acumuladas.png')
+        resultado = tirar_ruleta()
+        exito = (resultado == apuesta_numero)
+        exitos += int(exito)
 
-# Mostrar los gráficos
-plt.show()
+        # Elegir estrategia
+        if estrategia == 'martingala':
+            apuesta = martingala(balance, apuesta_inicial, historial_apuestas, exito)
+        elif estrategia == 'dalembert':
+            apuesta = dalembert(balance, apuesta_inicial, historial_apuestas, exito)
+        elif estrategia == 'fibonacci':
+            apuesta = fibonacci(balance, apuesta_inicial, historial_apuestas, exito, secuencia_fibo)
+        else:
+            raise ValueError("Estrategia no válida. Usa 'martingala', 'dalembert' o 'fibonacci'.")
+
+        # Ajustar apuesta si no hay suficiente capital
+        if not capital_infinito and apuesta > balance:
+            apuesta = balance
+
+        historial_apuestas.append(apuesta)
+
+        if exito:
+            ganancia = apuesta * 35
+        else:
+            ganancia = -apuesta
+
+        if not capital_infinito:
+            balance += ganancia
+
+        flujo_caja.append(balance if not capital_infinito else sum(flujo_caja[-1:] or [0]) + ganancia)
+
+        # Guardar frecuencia relativa acumulada
+        frecuencia_actual = exitos / tirada
+        exitos_acumulados.append(frecuencia_actual)
+
+        # Si el jugador se queda sin capital
+        if not capital_infinito and balance <= 0:
+            flujo_caja += [0] * (n - tirada)
+            exitos_acumulados += [frecuencia_actual] * (n - tirada)
+            break
+
+    return flujo_caja, exitos_acumulados
+
+def simular_varias_corridas(n, c, e, s, a, capital_inicial):
+    resultados_flujo = []
+    resultados_frecuencia = []
+
+    for _ in range(c):
+        flujo, frecuencia = simular_corrida(n, e, s, a, capital_inicial)
+        resultados_flujo.append(flujo)
+        resultados_frecuencia.append(frecuencia)
+
+    return resultados_flujo, resultados_frecuencia
+
+def graficar_resultados(n, c, resultados_flujo, resultados_frecuencia):
+    tiradas = np.arange(1, n+1)
+
+    # Gráfico de frecuencia relativa promedio
+    frecuencias_array = np.array([f + [f[-1]]*(n-len(f)) for f in resultados_frecuencia])
+    frecuencia_media = np.mean(frecuencias_array, axis=0)
+
+    plt.figure(figsize=(12, 5))
+
+    # Frecuencia relativa
+    plt.subplot(1, 2, 1)
+    plt.plot(tiradas, frecuencia_media, color='blue')
+    plt.title('Frecuencia relativa de éxito')
+    plt.xlabel('Número de tiradas')
+    plt.ylabel('Frecuencia relativa')
+    plt.grid(True)
+
+    # Flujo de caja de la primera corrida
+    flujo_corrida = resultados_flujo[0]
+    flujo_corrida += [0] * (n - len(flujo_corrida))  # Completar si terminó antes
+
+    plt.subplot(1, 2, 2)
+    plt.plot(tiradas, flujo_corrida, color='green')
+    plt.title('Flujo de caja (una corrida)')
+    plt.xlabel('Número de tiradas')
+    plt.ylabel('Capital ($)')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Simulación de apuestas en la ruleta con estrategias.")
+    parser.add_argument('--n', type=int, required=True, help='Número de tiradas por corrida')
+    parser.add_argument('--c', type=int, required=True, help='Número de corridas')
+    parser.add_argument('--e', type=int, default=None, help='Número elegido (0-36). Si no se especifica, será aleatorio')
+    parser.add_argument('--s', type=str, required=True, choices=['martingala', 'dalembert', 'fibonacci'], help='Estrategia de apuesta')
+    parser.add_argument('--a', type=lambda x: (str(x).lower() == 'true'), required=True, help='Capital infinito (True/False)')
+    parser.add_argument('--capital_inicial', type=int, default=1000, help='Capital inicial del jugador')
+
+    args = parser.parse_args()
+
+    resultados_flujo, resultados_frecuencia = simular_varias_corridas(args.n, args.c, args.e, args.s, args.a, args.capital_inicial)
+    graficar_resultados(args.n, args.c, resultados_flujo, resultados_frecuencia)
+
+if __name__ == "__main__":
+    main()
