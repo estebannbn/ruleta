@@ -1,0 +1,71 @@
+// Todo 1. Martingala (m)
+Idea principal:
+Cada vez que pierdes, duplicas tu apuesta.
+Cuando ganas, recuperas todo lo perdido + ganas lo de la apuesta inicial.
+
+Ejemplo:
+
+Apuestas 10 ➔ pierdes
+
+Apuestas 20 ➔ pierdes
+
+Apuestas 40 ➔ ganas
+
+Recuperaste: 10 + 20 (lo perdido) + ganaste 10 de beneficio.
+
+Ventaja:
+Garantiza pequeñas ganancias siempre y cuando tengas saldo suficiente.
+
+Desventaja:
+Si pierdes muchas veces seguidas, la apuesta se vuelve muy grande y puedes quebrar rápidamente.
+
+2. D Alembert (d)
+Idea principal:
+Aumentas tu apuesta en 1 unidad cuando pierdes y la disminuyes en 1 unidad cuando ganas.
+
+Ejemplo:
+
+Apuestas 10 ➔ pierdes ➔ próxima apuesta 11
+
+Apuestas 11 ➔ pierdes ➔ próxima apuesta 12
+
+Apuestas 12 ➔ ganas ➔ próxima apuesta 11
+
+Apuestas 11 ➔ ganas ➔ próxima apuesta 10
+
+Ventaja:
+Es más seguro que la Martingala: crece y decrece de a poco.
+Las pérdidas no explotan tan rápido.
+
+Desventaja:
+Puede necesitar muchas jugadas para recuperar pérdidas si hay una racha larga de derrotas.
+
+//! 3. Fibonacci (f)
+Idea principal:
+Las apuestas siguen la secuencia de Fibonacci:
+(1, 1, 2, 3, 5, 8, 13, 21, 34, ...)
+
+➔ Cada número es la suma de los dos anteriores.
+➔ Solo avanzas un número en la secuencia cuando pierdes.
+➔ Cuando ganas, retrocedes dos posiciones.
+
+Ejemplo:
+
+Apuestas 1 ➔ pierdes
+
+Apuestas 1 ➔ pierdes
+
+Apuestas 2 ➔ pierdes
+
+Apuestas 3 ➔ ganas ➔ vuelves dos pasos atrás: apuestas 1 otra vez
+
+Ventaja:
+Progresión más lenta que la Martingala, menor riesgo de quiebra rápida.
+
+Desventaja:
+Requiere varias ganancias consecutivas para volver a ganar lo perdido si se arrastra una mala racha.
+
+Estrategia | ¿Cómo apuesta? | Riesgo de quiebra
+Martingala | Duplica si pierde | Alto
+D’Alembert | +1 si pierde, -1 si gana | Medio
+Fibonacci | Sigue la serie de Fibonacci (1,1,2,3,5...) | Medio-Bajo
