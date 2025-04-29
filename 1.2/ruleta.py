@@ -59,7 +59,8 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
     apuesta_actual = apuesta_base
     ronda = 0
     bancarrota = False
-    aciertos = 0  # NUEVO
+    aciertos = 0  # apuestas ganadas
+    no_aciertos = 0  # apuestas perdidas
 
     while ronda < len(historial):
         numero, color = historial[ronda]
@@ -67,7 +68,7 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
         saldo -= apuesta_actual
 
         if gano:
-            aciertos += 1  # CONTAMOS LA APUESTA GANADA
+            aciertos += 1 # contar la favorable
             if tipo_apuesta == "numero":
                 saldo += apuesta_actual * 35
             elif tipo_apuesta == "docena":
@@ -84,6 +85,7 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
                     fibonacci_seq.append(fibonacci_seq[-1] + fibonacci_seq[-2])
                 apuesta_actual = fibonacci_seq[-1]
         else:
+            no_aciertos += 1  # contar la no favorable
             if estrategia == 'm':
                 apuesta_actual *= 2
             elif estrategia == 'd':
@@ -103,11 +105,12 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
 
         ronda += 1
 
-    return saldo_historial, bancarrota, aciertos  # NUEVO
+    return saldo_historial, bancarrota, aciertos, no_aciertos 
+
 
 def graficar_apuestas_favorables(aciertos_por_corrida):
     plt.figure(figsize=(8, 4))
-    plt.bar(range(1, len(aciertos_por_corrida)+1), aciertos_por_corrida, color="blue")
+    plt.bar(range(1, len(aciertos_por_corrida)+1), aciertos_por_corrida, color="green")
     plt.title("Apuestas Favorables por Corrida")
     plt.xlabel("Corrida")
     plt.ylabel("Cantidad de Aciertos")
@@ -116,13 +119,34 @@ def graficar_apuestas_favorables(aciertos_por_corrida):
     plt.savefig("apuestas_favorables.png")
     plt.show()
 
+def graficar_no_favorables(no_aciertos_por_corrida):
+    plt.figure(figsize=(8, 4))
+    plt.bar(range(1, len(no_aciertos_por_corrida)+1), no_aciertos_por_corrida, color="red")
+    plt.title("Apuestas No Favorables por Corrida")
+    plt.xlabel("Corrida")
+    plt.ylabel("Cantidad de Errores")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig("apuestas_no_favorables.png")
+    plt.show()
+
+def graficar_saldos_por_tirada(saldos_por_corrida):
+    plt.figure(figsize=(10, 6))
+    for i, saldo_historial in enumerate(saldos_por_corrida, start=1):
+        plt.plot(saldo_historial, label=f"Corrida {i}")
+    plt.title("Evolución del Saldo por Tirada en Cada Corrida")
+    plt.xlabel("Tirada")
+    plt.ylabel("Saldo")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.yscale("log")
+    plt.savefig("saldos_por_tirada.png")
+    plt.show()
+
 
 def generar_historial(n):
     return [tirar_ruleta() for _ in range(n)]
-
-def graficar_saldo(saldo_historial, estrategia, capital, corrida):
-    """Genera el gráfico de saldo durante las corridas"""
-    plt.scatter(saldo_historial, label=f"Corrida {corrida} ({estrategia})")
 
 def graficar_historial_numeros(historial):
     """Genera gráfico de barras con la frecuencia de números que salieron"""
@@ -136,15 +160,6 @@ def graficar_historial_numeros(historial):
     plt.grid(True)
     plt.show()
 
-def grafico_saldo(estrategia, saldo_historial, capital_infinito,numeroA):
-     # Mostrar gráficos
-    plt.plot(numeroA,saldo_historial)
-    plt.title(f"Estrategia: {estrategia} | Capital: {'Infinito' if capital_infinito else 'Finito'}")
-    plt.xlabel("Número de Apuestas")
-    plt.ylabel("Saldo")
-    plt.legend()
-    plt.grid()
-    plt.show()
 
 
 if __name__ == "__main__":
@@ -174,21 +189,26 @@ if __name__ == "__main__":
         valor_apuesta = input("Ingrese el color a apostar (Rojo o Negro): ")
     
 
-    apuestas_favorables = []  # NUEVO
+    apuestas_favorables = []
+    apuestas_no_favorables = []
+    saldos_por_corrida = []
 
     for corrida in range(1, args.c + 1):
         historial = generar_historial(args.n)
         saldo = 200 if not capital_infinito else 100000
-        saldo_historial, bancarrota, aciertos = apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, historial)
-
+        saldo_historial, bancarrota, aciertos, no_aciertos = apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, historial)
+        saldos_por_corrida.append(saldo_historial)
         if bancarrota:
             bancarrotas += 1
 
+        
+        apuestas_no_favorables.append(no_aciertos)
         apuestas_favorables.append(aciertos)
         historial_completo.extend(historial)
 
-
+    graficar_saldos_por_tirada(saldos_por_corrida)
     graficar_apuestas_favorables(apuestas_favorables)
+    graficar_no_favorables(apuestas_no_favorables)
 
     # Graficar la frecuencia de números
     graficar_historial_numeros(historial_completo)
