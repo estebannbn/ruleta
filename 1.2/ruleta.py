@@ -61,20 +61,22 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
     bancarrota = False
     aciertos = 0  # apuestas ganadas
     no_aciertos = 0  # apuestas perdidas
-
+    print(f"Saldo inicial: {saldo}")
+    print('--- Apuestas ---')
     while ronda < len(historial):
         numero, color = historial[ronda]
         gano = resolver_apuesta(tipo_apuesta, valor_apuesta, numero, color)
-        saldo -= apuesta_actual
-
+        print(f'apuesta: {apuesta_actual}')
+        saldo -= float(apuesta_actual)
+        print(f'apuesta: {apuesta_actual}, saldo: {saldo}, tirada: {numero}, color: {color}, gano: {gano}')
         if gano:
             aciertos += 1 # contar la favorable
             if tipo_apuesta == "numero":
-                saldo += apuesta_actual * 35
-            elif tipo_apuesta == "docena":
-                saldo += apuesta_actual * 2
+                saldo += apuesta_actual * 36
+            elif tipo_apuesta in ["docena", "fila"]:
+                saldo += apuesta_actual * 3
             else:
-                saldo += apuesta_actual
+                saldo += apuesta_actual * 2
 
             if estrategia == 'd':
                 apuesta_actual = max(apuesta_actual - 1, 1)
@@ -84,6 +86,8 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
                 else:
                     fibonacci_seq.append(fibonacci_seq[-1] + fibonacci_seq[-2])
                 apuesta_actual = fibonacci_seq[-1]
+            elif estrategia == 'm':
+                apuesta_actual = apuesta_base
         else:
             no_aciertos += 1  # contar la no favorable
             if estrategia == 'm':
@@ -95,11 +99,13 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
                     fibonacci_seq = [1, 1]
                 else:
                     fibonacci_seq.append(fibonacci_seq[-1] + fibonacci_seq[-2])
-                apuesta_actual = fibonacci_seq[-1]
+                apuesta_actual = fibonacci_seq[-1] 
+            
 
+        print(saldo)
         saldo_historial.append(saldo)
 
-        if not capital_infinito and saldo <= 0:
+        if capital_infinito=='f' and saldo <= 0:
             bancarrota = True
             break
 
@@ -130,19 +136,28 @@ def graficar_no_favorables(no_aciertos_por_corrida):
     plt.savefig("apuestas_no_favorables.png")
     plt.show()
 
-def graficar_saldos_por_tirada(saldos_por_corrida):
-    plt.figure(figsize=(10, 6))
+def graficar_saldos_por_tirada(saldos_por_corrida,capital_infinito):
+    # plt.figure(figsize=(10, 6))
+
     for i, saldo_historial in enumerate(saldos_por_corrida, start=1):
-        plt.plot(saldo_historial, label=f"Corrida {i}")
-    plt.title("Evolución del Saldo por Tirada en Cada Corrida")
+        saldo_inicial = saldo_historial[0] if saldo_historial else 0
+        if saldo_inicial != 0:
+            saldo_relativo = [s - saldo_inicial for s in saldo_historial]
+        else:
+            saldo_relativo = saldo_historial 
+        plt.plot(saldo_relativo, label=f"Corrida {i}")
+
+    plt.axhline(y = -200, color='red', linestyle='--', label='Bancarrota') if capital_infinito == 'f' else None
+    plt.title("Evolución del Saldo Relativo por Tirada en Cada Corrida")
     plt.xlabel("Tirada")
-    plt.ylabel("Saldo")
-    plt.legend()
+    plt.ylabel("Cambio de Saldo (relativo al inicial)")
+    plt.legend(loc='upper left')
     plt.grid(True)
     plt.tight_layout()
-    plt.yscale("log")
-    plt.savefig("saldos_por_tirada.png")
+    plt.savefig("saldos_por_tirada_relativo.png")
     plt.show()
+
+
 
 
 def generar_historial(n):
@@ -195,7 +210,7 @@ if __name__ == "__main__":
 
     for corrida in range(1, args.c + 1):
         historial = generar_historial(args.n)
-        saldo = 200 if not capital_infinito else 100000
+        saldo = 200 if capital_infinito == 'f' else 10000
         saldo_historial, bancarrota, aciertos, no_aciertos = apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, historial)
         saldos_por_corrida.append(saldo_historial)
         if bancarrota:
@@ -206,7 +221,7 @@ if __name__ == "__main__":
         apuestas_favorables.append(aciertos)
         historial_completo.extend(historial)
 
-    graficar_saldos_por_tirada(saldos_por_corrida)
+    graficar_saldos_por_tirada(saldos_por_corrida, capital_infinito)
     graficar_apuestas_favorables(apuestas_favorables)
     graficar_no_favorables(apuestas_no_favorables)
 
