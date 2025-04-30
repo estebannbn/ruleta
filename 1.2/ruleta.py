@@ -61,11 +61,23 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
     bancarrota = False
     aciertos = 0  # apuestas ganadas
     no_aciertos = 0  # apuestas perdidas
+    labouchere_seq = [1, 2, 3, 4]
     print(f"Saldo inicial: {saldo}")
     print('--- Apuestas ---')
     while ronda < len(historial):
+        if estrategia == 'l' and len(labouchere_seq) == 0:
+            break  # Se completó la secuencia
+
         numero, color = historial[ronda]
         gano = resolver_apuesta(tipo_apuesta, valor_apuesta, numero, color)
+
+        if estrategia == 'l':
+            if len(labouchere_seq) == 1:
+                apuesta_actual = labouchere_seq[0]
+            else:
+                apuesta_actual = labouchere_seq[0] + labouchere_seq[-1]
+
+
         print(f'apuesta: {apuesta_actual}')
         saldo -= float(apuesta_actual)
         print(f'apuesta: {apuesta_actual}, saldo: {saldo}, tirada: {numero}, color: {color}, gano: {gano}')
@@ -88,6 +100,11 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
                 apuesta_actual = fibonacci_seq[-1]
             elif estrategia == 'm':
                 apuesta_actual = apuesta_base
+            elif estrategia == 'l':
+                if len(labouchere_seq) > 1:
+                    labouchere_seq = labouchere_seq[1:-1]
+                elif len(labouchere_seq) == 1:
+                    labouchere_seq = []
         else:
             no_aciertos += 1  # contar la no favorable
             if estrategia == 'm':
@@ -100,7 +117,9 @@ def apostar(tipo_apuesta, valor_apuesta, saldo, capital_infinito, estrategia, hi
                 else:
                     fibonacci_seq.append(fibonacci_seq[-1] + fibonacci_seq[-2])
                 apuesta_actual = fibonacci_seq[-1] 
-            
+            elif estrategia == 'l':
+                labouchere_seq.append(apuesta_actual)
+
 
         print(saldo)
         saldo_historial.append(saldo)
